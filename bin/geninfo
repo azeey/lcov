@@ -1396,18 +1396,18 @@ sub process_dafile($$)
 			if ($gcov_content[0])
 			{
 				$lines_found++;
-				printf(INFO_HANDLE "DA:".$line_number.",".
-				       $gcov_content[1].($checksum ?
-				       ",". md5_base64($gcov_content[2]) : "").
+				printf(INFO_HANDLE "DA:".$gcov_content[1].",".
+				       $gcov_content[2].($checksum ?
+				       ",". md5_base64($gcov_content[3]) : "").
 				       "\n");
 
 				# Increase $lines_hit in case of an execution
 				# count>0
-				if ($gcov_content[1] > 0) { $lines_hit++; }
+				if ($gcov_content[2] > 0) { $lines_hit++; }
 			}
 
 			# Remove already processed data from array
-			splice(@gcov_content,0,3);
+			splice(@gcov_content,0,4);
 		}
 
 		# Write line statistics and section separator
@@ -1768,12 +1768,13 @@ sub br_gvec_push($$$$$)
 # Parse file GCOV_FILENAME (.gcov file format) and return the list:
 # (reference to gcov_content, reference to gcov_branch, reference to gcov_func)
 #
-# gcov_content is a list of 3 elements
-# (flag, count, source) for each source code line:
+# gcov_content is a list of 4 elements
+# (flag, line, count, source) for each source code line:
 #
 # $result[($line_number-1)*3+0] = instrumentation flag for line $line_number
-# $result[($line_number-1)*3+1] = execution count for line $line_number
-# $result[($line_number-1)*3+2] = source code text for line $line_number
+# $result[($line_number-1)*3+1] = source line for line $line_number
+# $result[($line_number-1)*3+2] = execution count for line $line_number
+# $result[($line_number-1)*3+3] = source code text for line $line_number
 #
 # gcov_branch is a vector of 4 4-byte long elements for each branch:
 # line number, block number, branch number, count + 1 or 0
@@ -1870,6 +1871,7 @@ sub read_gcov_file($)
 					# Uninstrumented line
 					push(@result, 0);
 					push(@result, 0);
+					push(@result, 0);
 					push(@result, $1);
 					next;
 				}
@@ -1883,8 +1885,10 @@ sub read_gcov_file($)
 					# Register uninstrumented line instead
 					push(@result, 0);
 					push(@result, 0);
+					push(@result, 0);
 				} else {
 					push(@result, 1);
+					push(@result, 0);
 					push(@result, $number);
 				}
 				push(@result, substr($_, 16));
@@ -1979,6 +1983,7 @@ sub read_gcov_file($)
 				{
 					# Uninstrumented line
 					push(@result, 0);
+					push(@result, $line);
 					push(@result, 0);
 					push(@result, $code);
 				}
@@ -1986,6 +1991,7 @@ sub read_gcov_file($)
 				{
 					if ($exclude_line) {
 						push(@result, 0);
+						push(@result, $line);
 						push(@result, 0);
 					} else {
 						# Check for zero count
@@ -1993,6 +1999,7 @@ sub read_gcov_file($)
 							$count = 0;
 						}
 						push(@result, 1);
+						push(@result, $line);
 						push(@result, $count);
 					}
 					push(@result, $code);
